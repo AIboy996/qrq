@@ -1,0 +1,19 @@
+{
+	"name": "Copyables",
+	"version": "0.1",
+	"manifest_version": 3,
+	"description": "Makes the text/label of focused links copyable. Also via contextmenu.",
+	"permissions": ["contextMenus"],
+	"background": {
+		"service_worker": "background.js"
+	},
+
+	"content_scripts": [
+		{
+			"all_frames": true,
+			"run_at": "document_end",
+			"js": ["content.js"],
+			"matches": ["<all_urls>"]
+		}
+	]
+}

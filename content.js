@@ -1,37 +1,22 @@
-// 确保QRCode库已加载
-let qrcodeScript = document.createElement('script');
-qrcodeScript.src = chrome.runtime.getURL('qrcode.min.js');
-qrcodeScript.onload = function () {
-	console.log('QRCode library loaded successfully');
-};
-document.head.appendChild(qrcodeScript);
-
 // 处理来自background的消息
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-	console.log('Received message:', message);
-
 	// 处理生成二维码的请求
 	if (message.action === "generateQR") {
-		console.log('Generating QR code for text:', message.text);
 		try {
-			// 检查文本长度限制
-			if (message.text.length > 2000) {
+			// 检查文本长度限制（对于图片URL和链接URL不检查长度）
+			if (!message.isImageUrl && !message.isLink && message.text.length > 2000) {
 				alert('文本内容过长，请选择少于2000个字符的内容');
 				sendResponse({ success: false, error: 'Text too long' });
 				return true;
 			}
 
-			// 移除已存在的二维码容器
-			const existingContainer = document.getElementById('qrcode-container');
-			if (existingContainer) {
-				document.body.removeChild(existingContainer);
-			}
-
-			// 移除已存在的遮罩层
-			const existingOverlay = document.getElementById('qrcode-overlay');
-			if (existingOverlay) {
-				document.body.removeChild(existingOverlay);
-			}
+			// 移除已存在的元素
+			['qrcode-container', 'qrcode-overlay'].forEach(id => {
+				const element = document.getElementById(id);
+				if (element) {
+					document.body.removeChild(element);
+				}
+			});
 
 			// 创建遮罩层
 			const overlay = document.createElement('div');
@@ -77,19 +62,17 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 			document.body.appendChild(qrContainer);
 
 			// 点击遮罩层关闭
-			overlay.addEventListener('click', function (e) {
+			overlay.addEventListener('click', () => {
 				document.body.removeChild(overlay);
 				document.body.removeChild(qrContainer);
 			});
 
 			// 阻止点击二维码容器时关闭
-			qrContainer.addEventListener('click', function (e) {
-				e.stopPropagation();
-			});
+			qrContainer.addEventListener('click', e => e.stopPropagation());
 
 			// 使用QR Code Generator API生成二维码
 			const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(message.text)}`;
-
+			
 			// 创建图片元素
 			const img = document.createElement('img');
 			img.style.cssText = `
@@ -98,11 +81,11 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 				display: block;
 				margin: 0 auto;
 			`;
-
+			
 			img.onload = function () {
 				// 移除加载提示
 				qrContainer.removeChild(loadingDiv);
-
+				
 				// 添加提示文本
 				const tipDiv = document.createElement('div');
 				tipDiv.style.cssText = `
@@ -111,19 +94,75 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					color: #666;
 					font-size: 14px;
 				`;
-				tipDiv.textContent = '扫描二维码查看内容';
+				
+				// 根据不同类型显示不同的提示文本
+				const tipText = {
+					isImageUrl: '扫描二维码查看图片',
+					isLink: '扫描二维码访问链接',
+					isPageUrl: '扫描二维码访问当前页面'
+				}[Object.keys(message).find(key => message[key] === true)] || '扫描二维码查看内容';
+				
+				tipDiv.textContent = tipText;
 				qrContainer.appendChild(tipDiv);
 
-				console.log('QR code generated successfully');
+				// 如果是图片，添加预览
+				if (message.isImageUrl) {
+					const previewContainer = document.createElement('div');
+					previewContainer.style.cssText = `
+						margin-top: 10px;
+						border-top: 1px solid #eee;
+						padding-top: 10px;
+					`;
+					
+					const previewImg = document.createElement('img');
+					previewImg.src = message.text;
+					previewImg.style.cssText = `
+						max-width: 200px;
+						max-height: 100px;
+						object-fit: contain;
+					`;
+					
+					previewContainer.appendChild(previewImg);
+					qrContainer.appendChild(previewContainer);
+				}
+				
+				// 添加预览内容（适用于所有类型）
+				const previewContainer = document.createElement('div');
+				previewContainer.style.cssText = `
+					margin-top: 10px;
+					border-top: 1px solid #eee;
+					padding-top: 10px;
+					word-break: break-all;
+					font-size: 12px;
+					color: #666;
+					max-width: 250px;
+					max-height: 100px;
+					overflow-y: auto;
+				`;
+
+				// 如果是图片，显示图片链接
+				if (message.isImageUrl) {
+					previewContainer.textContent = message.text;
+				}
+				// 如果是链接或页面URL，显示链接
+				else if (message.isLink || message.isPageUrl) {
+					previewContainer.textContent = message.text;
+				}
+				// 如果是普通文本，显示文本内容
+				else {
+					previewContainer.textContent = message.text;
+				}
+
+				qrContainer.appendChild(previewContainer);
+				
 				sendResponse({ success: true });
 			};
-
+			
 			img.onerror = function () {
 				loadingDiv.textContent = '生成二维码失败，请重试';
-				console.error('Error loading QR code image');
 				sendResponse({ success: false, error: 'Failed to load QR code image' });
 			};
-
+			
 			img.src = apiUrl;
 			qrContainer.appendChild(img);
 

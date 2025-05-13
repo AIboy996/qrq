@@ -1,30 +1,27 @@
 {
 	"name": "qrq",
-	"version": "0.1",
+	"version": "0.1.0",
 	"manifest_version": 3,
-	"description": "Generate QR code from selected text",
+	"description": "快速生成二维码 - 支持选中文本、图片链接、网页链接和当前页面",
+	"author": "yang",
+	"icons": {
+		"128": "icons/qr.png"
+	},
 	"permissions": [
 		"contextMenus",
-		"activeTab",
-		"tabs"
+		"activeTab"
 	],
 	"host_permissions": [
-		"<all_urls>",
-		"https://api.qrserver.com/"
+		"https://api.qrserver.com/*"
 	],
 	"background": {
 		"service_worker": "background.js"
 	},
-
 	"content_scripts": [
 		{
 			"matches": ["<all_urls>"],
 			"js": ["content.js"],
 			"run_at": "document_idle"
 		}
-	],
-	"web_accessible_resources": [{
-		"resources": ["qrcode.min.js"],
-		"matches": ["<all_urls>"]
-	}]
+	]
 }

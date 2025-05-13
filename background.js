@@ -23,11 +23,11 @@ chrome.runtime.onInstalled.addListener(function () {
 		contexts: ["link"]
 	});
 
-	// 创建页面的右键菜单
+	// 创建识别二维码的右键菜单
 	chrome.contextMenus.create({
-		id: "generateQRFromPage",
-		title: "生成当前页面二维码",
-		contexts: ["page"]
+		id: "decodeQRFromImage",
+		title: "识别图片中的二维码",
+		contexts: ["image"]
 	});
 });
 
@@ -50,19 +50,32 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
 			text: info.linkUrl,
 			isLink: true
 		};
-	} else if (info.menuItemId === "generateQRFromPage") {
+	} else if (info.menuItemId === "decodeQRFromImage" && info.srcUrl) {
 		messageData = {
-			text: tab.url,
-			isPageUrl: true
+			action: "decodeQR",
+			imageUrl: info.srcUrl
 		};
+		chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+			const activeTab = tabs[0];
+			chrome.tabs.sendMessage(activeTab.id, messageData, function (response) {
+				if (chrome.runtime.lastError) {
+					console.log('Error:', chrome.runtime.lastError.message);
+					return;
+				}
+				if (response && response.error) {
+					console.error('QR code decoding failed:', response.error);
+				}
+			});
+		});
+		return;
 	}
 
 	// 如果有有效的消息数据，发送消息
 	if (messageData) {
 		messageData.action = "generateQR";
-		chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+		chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
 			const activeTab = tabs[0];
-			chrome.tabs.sendMessage(activeTab.id, messageData, function(response) {
+			chrome.tabs.sendMessage(activeTab.id, messageData, function (response) {
 				if (chrome.runtime.lastError) {
 					console.log('Error:', chrome.runtime.lastError.message);
 					return;

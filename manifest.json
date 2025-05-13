@@ -2,8 +2,9 @@
 	"name": "qrq",
 	"version": "0.1.0",
 	"manifest_version": 3,
-	"description": "快速生成二维码 - 支持选中文本、图片链接、网页链接和当前页面",
+	"description": "一键生成/识别二维码 -- 支持文本、图片、链接",
 	"author": "yang",
+	"homepage_url": "https://github.com/AIboy996/qrq",
 	"icons": {
 		"128": "icons/qr.png"
 	},
@@ -20,7 +21,7 @@
 	"content_scripts": [
 		{
 			"matches": ["<all_urls>"],
-			"js": ["content.js"],
+			"js": ["lib/jsQR.js", "content.js"],
 			"run_at": "document_idle"
 		}
 	]

@@ -19,15 +19,20 @@ QRQ
 ## Features
 
 ### QR Code Generation
-- Convert selected **text** on web pages to QR codes via right-click menu
-- Convert **image links** on web pages to QR codes via right-click menu
+
+- [x] Convert selected **text** on web pages to QR codes via right-click menu
+- [x] Convert **image links** on web pages to QR codes via right-click menu
   - Note: Initially planned to encode images using base64, but due to size limitations of QR codes, only image URLs are converted
-- *(Planned)* Quick conversion of current webpage URL to QR code
+- [ ] *(Deprecated)* Quick conversion of current webpage URL to QR code
+   - This feature is no longer necessary as Chrome now includes built-in functionality for generating QR codes for the current webpage URL.
 
 ### QR Code Recognition
-- Recognize QR codes in web page images
-- *(Planned)* Recognize QR codes outside the browser
-- More features coming...
+
+- [x] Recognize QR codes in web page images
+- [ ] *(Planned)* Recognize QR codes outside the browser
+   - Due to security concerns, it is currently quite difficult to directly read local files using JavaScript in Chrome. Therefore, implementing this functionality requires additional permissions or must be achieved indirectly through other means, such as background services.
+
+More features coming...
 
 ## Installation
 
@@ -54,7 +59,7 @@ QRQ
 
 ## Credits
 
-- AI Programming Assistant: Cursor
+- AI Programming Assistant: [Cursor](https://www.cursor.com/)
 - Icon Generator: [AppIcon Forge](https://zhangyu1818.github.io/appicon-forge/)
 
 ## License

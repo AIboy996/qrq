@@ -1,144 +1,88 @@
-function copyToClipboard(text, done) {
-	var ta = document.createElement('textarea');
-	ta.value = text;
-	document.body.appendChild(ta);
-	ta.select();
+// 确保QRCode库已加载
+let qrcodeScript = document.createElement('script');
+qrcodeScript.src = chrome.runtime.getURL('qrcode.min.js');
+qrcodeScript.onload = function() {
+	console.log('QRCode library loaded successfully');
+};
+document.head.appendChild(qrcodeScript);
 
-	// Method 1: doesn't seem to work in content scripts...
-	document.execCommand('copy');
-
-	// Method 2: keep the text in the textarea selected until the copy
-	// trigger is done: the normal copy procedure will have copied the text
-	requestAnimationFrame(function() {
-		document.body.removeChild(ta);
-		done && done();
-	});
-}
-
-
-/**
- * Context menu item (background page)
- */
-
-var lastElement, lastContext = {x: 0, y: 0};
-document.addEventListener('contextmenu', function(e) {
-	lastElement = e.target;
-	lastContext.x = e.x;
-	lastContext.y = e.y;
-});
-
-chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-	if (lastElement) {
-		if (message.getLastElement) {
-			const text = lastElement.textContent.trim();
-			copyToClipboard(text);
-			sendResponse(text);
-		}
-
-		if (message.getFirstImage) {
-			var style = document.createElement('style');
-			style.textContent = ':before, :after { visibility: hidden !important; }';
-			document.head.insertBefore(style, document.head.firstChild);
-
-			console.debug('[copyables] lastContext', lastContext);
-
-			// Trigger reflow?
-			var x = lastElement.offsetHeight;
-
-			// Evaluate for all elements under the pointer
-			var els = document.elementsFromPoint(lastContext.x, lastContext.y);
-			var src = '';
-			for (var i=0; i<els.length; i++) {
-				var el = els[i];
-				src = tryElementImage(el);
-				if (src) {
-					break;
-				}
+// 处理来自background的消息
+chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+	console.log('Received message:', message);
+	
+	// 处理生成二维码的请求
+	if (message.action === "generateQR") {
+		console.log('Generating QR code for text:', message.text);
+		try {
+			// 移除已存在的二维码容器
+			const existingContainer = document.getElementById('qrcode-container');
+			if (existingContainer) {
+				document.body.removeChild(existingContainer);
 			}
 
-			// Send result, empty or not, back to background script
-			console.debug('[copyables] Found', '"' + src + '"');
-			sendResponse(src);
+			// 创建二维码容器
+			const qrContainer = document.createElement('div');
+			qrContainer.id = 'qrcode-container';
+			qrContainer.style.cssText = `
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				background: white;
+				padding: 20px;
+				border-radius: 8px;
+				box-shadow: 0 0 10px rgba(0,0,0,0.3);
+				z-index: 999999;
+			`;
 
-			style.remove();
+			// 创建关闭按钮
+			const closeButton = document.createElement('div');
+			closeButton.innerHTML = '×';
+			closeButton.style.cssText = `
+				position: absolute;
+				top: 5px;
+				right: 10px;
+				cursor: pointer;
+				font-size: 20px;
+				color: #666;
+			`;
+			closeButton.onclick = () => document.body.removeChild(qrContainer);
+			qrContainer.appendChild(closeButton);
+
+			// 创建二维码
+			const qrDiv = document.createElement('div');
+			qrDiv.id = 'qrcode';
+			qrContainer.appendChild(qrDiv);
+
+			// 添加到页面
+			document.body.appendChild(qrContainer);
+
+			console.log('QR container added to page');
+
+			// 使用qrcode.js生成二维码
+			if (typeof QRCode === 'undefined') {
+				console.error('QRCode library not loaded!');
+				qrDiv.textContent = 'Error: QRCode library not loaded';
+				sendResponse({ success: false, error: 'QRCode library not loaded' });
+				return true;
+			}
+
+			new QRCode(qrDiv, {
+				text: message.text,
+				width: 256,
+				height: 256,
+				colorDark: "#000000",
+				colorLight: "#ffffff",
+				correctLevel: QRCode.CorrectLevel.H
+			});
+
+			console.log('QR code generated successfully');
+			sendResponse({ success: true });
+		} catch (error) {
+			console.error('Error generating QR code:', error);
+			sendResponse({ success: false, error: error.message });
 		}
+		return true;
 	}
-});
-
-function tryElementImage(el) {
-	if (el.nodeName == 'HTML') {
-		var src = tryElementImage(document.body);
-		if (src) {
-			return src;
-		}
-	}
-
-	console.debug('[copyables] Trying', el);
-
-	var styles = getComputedStyle(el);
-	var opacity = styles.opacity;
-	var visibility = styles.visibility;
-
-	if (parseFloat(opacity) === 0 || visibility === 'hidden') {
-		return '';
-	}
-
-	// @todo Catch `[srcset]`, `<picture>` etc
-
-	if (el.nodeName == 'VIDEO' && el.currentSrc) {
-		return el.currentSrc;
-	}
-
-	if (el.nodeName == 'IMG' && el.src) {
-		return el.src;
-	}
-
-	var src = tryElementBackgroundImage(styles.backgroundImage);
-	if (src) {
-		return src;
-	}
-
-	var styles = getComputedStyle(el, '::before');
-	src = tryElementBackgroundImage(styles.backgroundImage);
-	if (src) {
-		return src;
-	}
-
-	var styles = getComputedStyle(el, '::after');
-	src = tryElementBackgroundImage(styles.backgroundImage);
-	if (src) {
-		return src;
-	}
-
-	return '';
-}
-
-function tryElementBackgroundImage(bgImage) {
-	if (bgImage && bgImage != 'none') {
-		var match = bgImage.match(/url\(['"]?(.+?)['"]?\)/);
-		if (match) {
-			return match[1];
-		}
-
-		if (bgImage.substr(0, 5) === 'data:') {
-			return bgImage;
-		}
-	}
-
-	return '';
-}
-
-
-
-/**
- * CTRL + V on links
- */
-
-document.addEventListener('copy', function(e) {
-	if ( document.activeElement.nodeName == 'A' ) {
-		const el = document.activeElement;
-		copyToClipboard(el.textContent.trim(), function() {
-			el.focus();
-		});
-	}
+	return true;
 });

@@ -72,7 +72,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
 			// 使用QR Code Generator API生成二维码
 			const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(message.text)}`;
-			
+
 			// 创建图片元素
 			const img = document.createElement('img');
 			img.style.cssText = `
@@ -81,11 +81,11 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 				display: block;
 				margin: 0 auto;
 			`;
-			
+
 			img.onload = function () {
 				// 移除加载提示
 				qrContainer.removeChild(loadingDiv);
-				
+
 				// 添加提示文本
 				const tipDiv = document.createElement('div');
 				tipDiv.style.cssText = `
@@ -94,13 +94,13 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 					color: #666;
 					font-size: 14px;
 				`;
-				
+
 				// 根据不同类型显示不同的提示文本
 				const tipText = {
 					isImageUrl: '扫描二维码查看图片',
 					isLink: '扫描二维码访问链接',
 				}[Object.keys(message).find(key => message[key] === true)] || '扫描二维码查看内容';
-				
+
 				tipDiv.textContent = tipText;
 				qrContainer.appendChild(tipDiv);
 
@@ -112,7 +112,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 						border-top: 1px solid #eee;
 						padding-top: 10px;
 					`;
-					
+
 					const previewImg = document.createElement('img');
 					previewImg.src = message.text;
 					previewImg.style.cssText = `
@@ -120,11 +120,11 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 						max-height: 100px;
 						object-fit: contain;
 					`;
-					
+
 					previewContainer.appendChild(previewImg);
 					qrContainer.appendChild(previewContainer);
 				}
-				
+
 				// 添加预览内容（适用于所有类型）
 				const previewContainer = document.createElement('div');
 				previewContainer.style.cssText = `
@@ -153,15 +153,15 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 				}
 
 				qrContainer.appendChild(previewContainer);
-				
+
 				sendResponse({ success: true });
 			};
-			
+
 			img.onerror = function () {
 				loadingDiv.textContent = '生成二维码失败，请重试';
 				sendResponse({ success: false, error: 'Failed to load QR code image' });
 			};
-			
+
 			img.src = apiUrl;
 			qrContainer.appendChild(img);
 
@@ -237,69 +237,32 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
 			// 创建一个Image对象来加载图片
 			const img = new Image();
-			
+
 			const loadImage = () => {
 				// 为所有图片设置跨域属性
 				img.crossOrigin = "anonymous";
-				
-				if (message.imageUrl.startsWith('data:')) {
-					// 对于data URL，直接设置src
-					img.src = message.imageUrl;
-				} else if (message.imageUrl.startsWith('http')) {
-					// 对于网络图片，尝试通过代理加载
-					img.src = `https://cors-anywhere.herokuapp.com/${message.imageUrl}`;
-					
-					// 如果代理加载失败，提供备选方案
-					img.onerror = function() {
-						loadingDiv.innerHTML = `
-							<div style="color: #f44336;">
-								无法加载网络图片。<br>
-								请尝试以下方法：<br>
-								1. 将图片保存到本地后拖拽到浏览器中再识别<br>
-								2. 复制图片后在新标签页粘贴再识别
-							</div>
-						`;
-						sendResponse({ success: false, error: 'Cannot load cross-origin image' });
-					};
-				} else {
-					// 对于本地图片，尝试直接加载
-					img.src = message.imageUrl;
-					
-					// 添加错误处理
-					img.onerror = function() {
-						loadingDiv.innerHTML = `
-							<div style="color: #f44336;">
-								无法读取本地图片。<br>
-								请尝试以下方法：<br>
-								1. 将图片拖拽到浏览器中后再识别<br>
-								2. 将图片上传到网页后再识别<br>
-								3. 复制图片后在新标签页粘贴再识别
-							</div>
-						`;
-						sendResponse({ success: false, error: 'Cannot access local image' });
-					};
-				}
+				img.src = message.imageUrl;
 			};
 
-			img.onload = function() {
+			img.onload = function () {
 				// 创建canvas来处理图片
 				const canvas = document.createElement('canvas');
 				const context = canvas.getContext('2d');
-				
+
 				// 设置canvas大小为图片的实际大小
 				canvas.width = img.naturalWidth;
 				canvas.height = img.naturalHeight;
-				
+
 				try {
 					// 绘制图片到canvas
 					context.drawImage(img, 0, 0);
-					
+
 					// 获取图片数据
 					const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-					
+
 					// 使用jsQR解码
 					const code = jsQR(imageData.data, imageData.width, imageData.height);
-					
+
 					// 移除加载提示
 					container.removeChild(loadingDiv);
 
@@ -311,7 +274,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
 					if (code) {
 						const decodedText = code.data;
-						
+
 						// 添加标题
 						const titleDiv = document.createElement('div');
 						titleDiv.textContent = '识别结果';
@@ -397,10 +360,10 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 						</div>
 					`;
 				}
-				
+
 				sendResponse({ success: true });
 			};
-			
+
 			loadImage();
 
 		} catch (error) {

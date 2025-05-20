@@ -38,7 +38,7 @@ QRQ
 
 ## 安装方法
 
-1. 从 Chrome 网上应用店下载安装（即将上线）
+1. 从 Chrome 网上应用店[下载安装](https://chromewebstore.google.com/detail/jppbbelkldkclffonkjkhackhgblcplg?utm_source=item-share-cb)
 2. 或者手动安装：
    - 克隆本仓库
    - 打开 Chrome 浏览器，访问 `chrome://extensions/`

@@ -36,7 +36,7 @@ More features coming...
 
 ## Installation
 
-1. Download the extension from Chrome Web Store (coming soon)
+1. Download the extension from [Chrome Web Store](https://chromewebstore.google.com/detail/jppbbelkldkclffonkjkhackhgblcplg?utm_source=item-share-cb)
 2. Or install manually:
    - Clone this repository
    - Open Chrome and go to `chrome://extensions/`
